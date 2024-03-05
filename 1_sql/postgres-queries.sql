@@ -2,7 +2,7 @@
 SELECT * from tasks WHERE user_id = 3;
 
 /* select all tasks iby status id */
-SELECT * FROM tasks WHERE status_id = 1;
+SELECT * FROM tasks WHERE status_id = 2;
 
 /* select tasks by status 'new' */
 SELECT * from tasks WHERE status_id = (SELECT id FROM statuses WHERE name = 'new');
@@ -30,7 +30,7 @@ DELETE FROM tasks WHERE id = 16;
 SELECT * from users WHERE email LIKE '%.net%';
 
 /* update user name */
-UPDATE users SET fullname = "Oleksandra Tkachuk", email = 'olex@example.com' WHERE id = 1;
+UPDATE users SET fullname = 'Oleksandra Tkachuk', email = 'olex@example.com' WHERE id = 1;
 
 /* select number of tasks for each status */
 SELECT COUNT(status_id) as total_tasks, status_id  FROM tasks GROUP BY status_id; 
@@ -45,7 +45,8 @@ SELECT * FROM tasks WHERE description = NULL;
 SELECT u.fullname as owner, t.id, t.title, t.description, t.status_id  FROM tasks as t INNER JOIN users as u ON u.id = t.user_id WHERE t.status_id = 2 ORDER BY u.fullname;
 
 /* select users and number of their tasks */
-SELECT  u.fullname  as owner, COUNT(t.user_id) as total_tasks FROM tasks as t LEFT JOIN users as u ON t.user_id = u.id GROUP BY t.user_id ;
+SELECT u.fullname as owner, COUNT(t.user_id) as total_tasks FROM tasks as t LEFT JOIN users as u ON t.user_id = u.id GROUP BY u.fullname  ;
+
 
 
 

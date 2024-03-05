@@ -1,12 +1,15 @@
 import faker
-from random import randint, choice
-import sqlite3
+import logging
+from random import randint
+from psycopg2 import DatabaseError
+
+from connect import create_connect
 
 NUMBER_USERS = 5
 NUMBER_TASKS = 15
 
 
-def generate_fake_data(number_users, number_tasks) -> tuple():
+def generate_fake_data(number_users, number_tasks):
     fake_users = []  # fake users array
     fake_statuses = [("new",), ("in progress",), ("completed",)]  # fake statuses array
     fake_tasks = []  # fake tsks array
@@ -26,7 +29,7 @@ def generate_fake_data(number_users, number_tasks) -> tuple():
     return fake_users, fake_statuses, fake_tasks
 
 
-def prepare_data(users, statuses, tasks) -> tuple():
+def prepare_data(users, statuses, tasks):
     prepared_tasks = []  # for tasks table
 
     for task in tasks:
@@ -38,22 +41,23 @@ def prepare_data(users, statuses, tasks) -> tuple():
     return users, statuses, prepared_tasks
 
 
-def insert_data_to_db(users, statuses, tasks) -> None:
-    # create connection with our database
-    with sqlite3.connect("tasks.db") as con:
-
-        cur = con.cursor()
+def insert_data_to_db(conn, users, statuses, tasks) -> None:
+    cur = conn.cursor()
+    try:
+        # create connection with our database
+        # for SQLite database with sqlite3.connect("tasks.db") as con:
 
         # query for users table filling with prepared fake data
+        # for Postgres placeholder id "%s", but for  SQLite - "?"
         sql_to_users = """INSERT INTO users(fullname, email)
-                               VALUES (?, ?)"""
+                                VALUES (%s, %s)"""
 
         # execute several scripts with the halp of executemany() method to insert data into the table
         cur.executemany(sql_to_users, users)
 
         # query for statuses table filling with prepared fake data
         sql_to_statuses = """INSERT INTO statuses(name)
-                               VALUES (?)"""
+                                VALUES (%s)"""
 
         # Дані були підготовлені заздалегідь, тому просто передаємо їх у функцію
 
@@ -61,12 +65,17 @@ def insert_data_to_db(users, statuses, tasks) -> None:
 
         # query for tasks table filling with prepared fake data
         sql_to_tasks = """INSERT INTO tasks(title, description, status_id, user_id)
-                              VALUES (?, ?, ?, ?)"""
+                                VALUES (%s, %s, %s, %s)"""
 
         cur.executemany(sql_to_tasks, tasks)
 
         # fix data in database
-        con.commit()
+        conn.commit()
+    except DatabaseError as err:
+        logging.error(f"Database error: {err}")
+        conn.rollback()
+    finally:
+        cur.close()
 
 
 if __name__ == "__main__":
@@ -75,5 +84,6 @@ if __name__ == "__main__":
         *generate_fake_data(NUMBER_USERS, NUMBER_TASKS)
     )
 
-    # insert generated fake data into database
-    insert_data_to_db(users, statuses, tasks)
+    with create_connect() as conn:
+        # insert generated fake data into database
+        insert_data_to_db(conn, users, statuses, tasks)
